@@ -7,6 +7,7 @@ Created on Fri Apr 26 23:05:58 2019
 """
 import os
 import time
+import argparse
 
 #import plaidml.keras
 #plaidml.keras.install_backend()
@@ -25,6 +26,8 @@ import keras.preprocessing.image as preprocess
 np.random.seed()
 #model = applications.VGG16(include_top=False, weights='imagenet')
 
+
+
 batch_size = 24
 num_classes = 10
 epochs = 100
@@ -39,7 +42,13 @@ model_name = 'keras_denoiser_model-'+str(int(time.time()))[-6:] # Add a timestam
 
 
 def add_noise(x):
+    return add_gaussian_noise(x)
+
+def add_poisson_noise(x):
     return np.clip(np.random.poisson(x), 0, 255)
+
+def add_gaussian_noise(x):
+    return np.clip(x + np.random.normal(scale=3, size=x.shape), 0, 255)
 
 def compare_im(image, lignes=1, n=0):
     datagen = preprocess.ImageDataGenerator(
