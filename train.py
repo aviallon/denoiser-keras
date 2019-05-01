@@ -9,8 +9,8 @@ import os
 import time
 import argparse
 
-#import plaidml.keras
-#plaidml.keras.install_backend()
+import plaidml.keras
+plaidml.keras.install_backend()
 
 import keras
 import numpy as np
@@ -45,10 +45,10 @@ def add_noise(x):
     return add_gaussian_noise(x)
 
 def add_poisson_noise(x):
-    return np.clip(np.random.poisson(x), 0, 255)
+    return np.clip(np.random.poisson(x, lam=13), 0, 255)
 
 def add_gaussian_noise(x):
-    return np.clip(x + np.random.normal(scale=3, size=x.shape), 0, 255)
+    return np.clip(x + np.random.normal(scale=30, size=x.shape), 0, 255)
 
 def compare_im(image, lignes=1, n=0):
     datagen = preprocess.ImageDataGenerator(
