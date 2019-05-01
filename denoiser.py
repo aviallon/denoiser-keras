@@ -22,7 +22,7 @@ from keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling
 from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
 import keras.preprocessing.image as preprocess
 
-#np.random.seed()
+np.random.seed()
 #model = applications.VGG16(include_top=False, weights='imagenet')
 
 batch_size = 24
@@ -81,6 +81,7 @@ def predict(image):
     return np.clip(model.predict_generator(generator=datagen.flow(np.reshape(image, reshape), np.reshape(image, reshape)))[0], 0, 1)
 
 x_train, x_test = add_noise(y_train), add_noise(y_test)
+#x_train, x_test = y_train, y_test
 
 y_train = y_train.astype('float32')
 y_train /= 255
