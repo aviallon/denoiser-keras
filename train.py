@@ -77,6 +77,8 @@ def add_noise(x):
         x = add_gaussian_noise(x)
     if 'salt' in noises:
         x = add_salt_noise(x)
+    if 'wavelet' in noises:
+        x = add_wavelet_noise(x)
     return x
 
 def add_poisson_noise(x):
@@ -84,6 +86,23 @@ def add_poisson_noise(x):
 
 def add_gaussian_noise(x):
     return np.clip(x + np.random.normal(scale=15, size=x.shape), 0, 255)
+
+def _add_wavelet_noise(image):
+    x = image.copy()
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            if np.random.rand() > 0.8:
+                x[i,j] += np.array([np.random.randint(-20, 20)]*3)
+    return x
+
+def add_wavelet_noise(x):
+    if len(x.shape) > 3:
+        with Pool(16) as p:
+            x_new = p.map(_add_wavelet_noise, x)
+        
+        return np.clip(x_new, 0, 255)
+    else:
+        return _add_wavelet_noise(x)
 
 def _add_salt_noise(image):
     x = image.copy()
