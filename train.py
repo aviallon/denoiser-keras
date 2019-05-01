@@ -92,7 +92,7 @@ def _add_wavelet_noise(image):
     for i in range(x.shape[0]):
         for j in range(x.shape[1]):
             if np.random.rand() > 0.8:
-                x[i,j] += np.array([np.random.randint(-20, 20)]*3)
+                x[i,j] += np.array([np.random.randint(10, 20, dtype='uint8')]*3)
     return x
 
 def add_wavelet_noise(x):
