@@ -22,10 +22,7 @@ model_path = os.path.join(save_dir, model_name)
 
 parser = argparse.ArgumentParser(description='Denoise a photo.')
 parser.add_argument('-i', '--input', metavar='INPUT_FILE',
-                    help='input image')
-'''parser.add_argument('--sum', dest='accumulate', action='store_const',
-                    const=sum, default=max,
-                    help='sum the integers (default: find the max)')'''
+                    help='input image', required=True)
 parser.add_argument('--model', help='specify model file')
 parser.add_argument('--output', help='output file')
 
