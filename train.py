@@ -134,7 +134,7 @@ def _add_salt_noise(x):
 
     for i in range(x.shape[0]):
         for j in range(x.shape[1]):
-            if np.random.rand() > 0.8:
+            if np.random.rand() > 0.85:
                 x[i,j] = [255]*3
     return x
 
@@ -149,6 +149,27 @@ def add_salt_noise(x, multiprocessing):
         return x_new
     else:
         return _add_salt_noise(x)
+    
+def _add_pepper_noise(x):
+    #x = image.copy()
+
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            if np.random.rand() > 0.85:
+                x[i,j] = [0]*3
+    return x
+
+def add_pepper_noise(x, multiprocessing):
+    if len(x.shape) > 3:
+        if multiprocessing:
+            with Pool(16) as p:
+                x_new = p.map(_add_salt_noise, x)
+        else:
+            x_new = np.array([_add_pepper_noise(im) for im in x])
+        
+        return x_new
+    else:
+        return _add_pepper_noise(x)
     
 def _add_blue_hole(img):
     from numpy.random import randint
@@ -199,10 +220,12 @@ def add_noise(img, multiprocessing=False, adapt = True, batch = False):
     if 'highiso' in noises:
         x = add_high_iso_noise(x)
         #print('high_iso ???')
-    if 'salt' in noises:
-        x = add_salt_noise(x, multiprocessing)
     if 'wavelet' in noises:
         x = add_wavelet_noise(x, multiprocessing)
+    if 'salt' in noises:
+        x = add_salt_noise(x, multiprocessing)
+    if 'pepper' in noises:
+        x = add_pepper_noise(x, multiprocessing)
     if 'inpainting' in noises:
         x = add_blue_hole(x)
     return np.clip(x.astype('float32')/255, 0, 1)
@@ -402,6 +425,12 @@ if args.arch == 'simple':
     model.add(Activation('relu'))
 elif args.arch == 'large':
     model.add(Conv2D(32, (7, 7), padding='same', input_shape=(None, None, n_colors)))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
+    model.add(Activation('relu'))
+elif args.arch == 'large+':
+    model.add(Conv2D(32, (7, 7), padding='same', input_shape=(None, None, n_colors)))
+    model.add(Conv2D(20, (3, 3), padding='same', input_shape=(None, None, n_colors)))
     model.add(LeakyReLU(alpha=0.01))
     model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
     model.add(Activation('relu'))
