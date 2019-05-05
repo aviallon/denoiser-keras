@@ -445,7 +445,7 @@ def DSSIM_MSE():
     return loss
 
 loss = keras.losses.mean_squared_error
-if args.loss = 'dssim':
+if args.loss == 'dssim':
     loss = DSSIM_MSE()
 opt = keras.optimizers.Nadam()
 model.compile(loss=loss, optimizer=opt, metrics=['accuracy', 'mse'])
