@@ -33,6 +33,7 @@ parser.add_argument('--batch_size', dest='bsize', default=40, type=int, help='se
 parser.add_argument('--architecture', dest='arch', default='simple', help='choose network architecture')
 parser.add_argument('--history', default=0, type=int, help='display training history at the end')
 parser.add_argument('--opencl', default=1, type=int, help='use PlaidML as backend')
+parser.add_argument('--loss', default='mse', help='set loss evaluation function')
 
 args = parser.parse_args()
 print(args)
@@ -443,8 +444,11 @@ def DSSIM_MSE():
         return 0.6*keras.losses.mean_squared_error(y_true,y_pred) + 0.4*dssim(y_true,y_pred)
     return loss
 
+loss = keras.losses.mean_squared_error
+if args.loss = 'dssim':
+    loss = DSSIM_MSE()
 opt = keras.optimizers.Nadam()
-model.compile(loss=DSSIM_MSE(), optimizer=opt, metrics=['accuracy', 'mse'])
+model.compile(loss=loss, optimizer=opt, metrics=['accuracy', 'mse'])
 
 print(model.summary())
 
