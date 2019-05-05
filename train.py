@@ -298,12 +298,14 @@ def generate_data(directory, batch_size=32, noises=[], target_size=(512,512), cl
     files = np.stack((file_list, file_preprocessed_list), axis=1)
     while True:
         image_batch = []
+        img_batch_files = []
         noisy_batch = []
         for b in range(batch_size):
             if i >= len(files):
                 i = 0
                 np.random.shuffle(files)
             sample = files[i]
+            img_batch_files.append(sample)
             #print(sample)
             i += 1
         #try:
@@ -336,11 +338,7 @@ def generate_data(directory, batch_size=32, noises=[], target_size=(512,512), cl
             try:
                 noisy_batch = add_noise(np.array(image_batch), adapt=False, batch = True)
             except Exception as e:
-                print("noisy_batch error :",e,image_batch.shape,sample)
-                if len(files) > 0:
-                    del(files[i])
-                else:
-                    raise ValueError('No more good files ! WTF')
+                print("noisy_batch error :",e,img_batch_files)
                 continue
         
         if np.average(noisy_batch[0]) == 1:
@@ -416,8 +414,8 @@ elif args.arch == 'large2':
     model.add(Activation('relu'))
 elif args.arch == 'large3':
     model.add(Conv2D(32, (9, 9), padding='same', input_shape=(None, None, n_colors)))
-    model.add(LeakyReLU(alpha=0.01))
-    model.add(Conv2D(32, (9, 9), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(20, (5, 5), padding='same'))
     model.add(LeakyReLU(alpha=0.01))
     model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
     model.add(Activation('relu'))
