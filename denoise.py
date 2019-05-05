@@ -2,20 +2,6 @@ import os
 import time
 import argparse
 
-import plaidml.keras
-plaidml.keras.install_backend()
-
-import keras
-import numpy as np
-import matplotlib.pyplot as plt
-
-from keras.models import load_model
-#from keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling2D, Conv2DTranspose, Reshape, LeakyReLU
-#from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
-import keras.preprocessing.image as preprocess
-
-np.random.seed()
-
 model_name = 'electronic_noise_denoiser.h5'
 save_dir = os.path.join(os.getcwd(), 'saved_models')
 model_path = os.path.join(save_dir, model_name)
@@ -25,6 +11,7 @@ parser.add_argument('-i', '--input', metavar='INPUT_FILE',
                     help='input image', required=True)
 parser.add_argument('--model', help='specify model file')
 parser.add_argument('--output', help='output file')
+parser.add_argument('--opencl', default=1, type=int, help='use PlaidML as backend')
 
 args = parser.parse_args()
 print(args)
@@ -36,6 +23,21 @@ if type(args.output) !=  None:
     output_filename = args.output
     
 print("Using model : {}".format(model_path))
+
+if args.opencl:
+    import plaidml.keras
+    plaidml.keras.install_backend()
+
+import keras
+import numpy as np
+import matplotlib.pyplot as plt
+
+from keras.models import load_model
+#from keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling2D, Conv2DTranspose, Reshape, LeakyReLU
+#from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
+import keras.preprocessing.image as preprocess
+
+np.random.seed()
 
 model = load_model(model_path)
 
