@@ -437,11 +437,13 @@ elif args.arch == 'heavy':
     model.add(Conv2DTranspose(n_colors, (15, 15), padding='same'))
     model.add(Activation('relu'))
 
-def loss(y_true, y_pred):
-    return 0.6*keras.losses.mean_squared_error(y_true,y_pred) + 0.4*keras_contrib.losses.DSSIMObjective(y_true,y_pred)
+def DSSIM_MSE():
+    def loss(y_true, y_pred):
+        return 0.6*keras.losses.mean_squared_error(y_true,y_pred) + 0.4*keras_contrib.losses.DSSIMObjective(y_true,y_pred)
+    return loss
 
 opt = keras.optimizers.Nadam()
-model.compile(loss=loss, optimizer=opt, metrics=['accuracy', 'mse'])
+model.compile(loss=DSSIM_MSE(), optimizer=opt, metrics=['accuracy', 'mse'])
 
 print(model.summary())
 
