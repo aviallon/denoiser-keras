@@ -438,8 +438,9 @@ elif args.arch == 'heavy':
     model.add(Activation('relu'))
 
 def DSSIM_MSE():
+    dssim = keras_contrib.losses.DSSIMObjective()
     def loss(y_true, y_pred):
-        return 0.6*keras.losses.mean_squared_error(y_true,y_pred) + 0.4*keras_contrib.losses.DSSIMObjective(y_true,y_pred)
+        return 0.6*keras.losses.mean_squared_error(y_true,y_pred) + 0.4*dssim(y_true,y_pred)
     return loss
 
 opt = keras.optimizers.Nadam()
