@@ -22,7 +22,7 @@ except NameError:
     data_already_peprocessed = False
 save_dir = os.path.join(os.getcwd(), 'saved_models')
 model_name = 'keras_denoiser_model-'+str(int(time.time()))[-6:] # Add a timestamp at the end to avoid overwriting
-noises = ['poisson', 'gaussian', 'salt', 'wavelet', 'inpainting', 'highiso']
+noises = ['poisson', 'gaussian', 'salt', 'pepper', 'wavelet', 'inpainting', 'highiso']
 
 parser = argparse.ArgumentParser(description='Train denoising models.')
 parser.add_argument('--noise', dest='noises', choices=noises, nargs='+', default=['poisson', 'gaussian'], required=False, help='specify on which noises we should train')
