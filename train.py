@@ -58,6 +58,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+import keras.backend as K
+
 import keras_contrib
 from keras import applications
 from keras.datasets import cifar100
@@ -472,9 +474,20 @@ def DSSIM_MSE():
         return 0.6*keras.losses.mean_squared_error(y_true,y_pred) + 0.4*dssim(y_true,y_pred)
     return loss
 
+def mse_plus_grad(alpha=0.6):
+    def loss(y_true, y_pred):
+        grad_kernel = K.variable([[0., -1., 0.],[-1., 0., 1.],[0., 1., 0.]], dtype='float32')
+        grad_true = K.conv2d(y_true, grad_kernel, padding='same', strides=(1,1))
+        grad_pred = K.conv2d(y_pred, grad_kernel, padding='same', strides=(1,1))
+        return alpha*keras.losses.mean_squared_error(y_true,y_pred) + (1-alpha)*keras.losses.mean_squared_error(grad_true,grad_pred)
+    return loss
+
 loss = keras.losses.mean_squared_error
 if args.loss == 'dssim':
     loss = DSSIM_MSE()
+elif args.loss == 'mse_grad':
+    loss = mse_plus_grad()
+    
 opt = keras.optimizers.Nadam()
 model.compile(loss=loss, optimizer=opt, metrics=['accuracy', 'mse'])
 
