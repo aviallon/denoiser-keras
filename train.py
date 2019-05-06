@@ -430,7 +430,8 @@ elif args.arch == 'large':
     model.add(Activation('relu'))
 elif args.arch == 'large+':
     model.add(Conv2D(32, (7, 7), padding='same', input_shape=(None, None, n_colors)))
-    model.add(Conv2D(20, (3, 3), padding='same', input_shape=(None, None, n_colors)))
+    model.add(Activation('relu'))
+    model.add(Conv2D(20, (3, 3), padding='same'))
     model.add(LeakyReLU(alpha=0.01))
     model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
     model.add(Activation('relu'))
