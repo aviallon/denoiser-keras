@@ -474,17 +474,13 @@ def DSSIM_MSE():
         return 0.6*keras.losses.mean_squared_error(y_true,y_pred) + 0.4*dssim(y_true,y_pred)
     return loss
 
-_mse_ok = False
 def mse_plus_grad(alpha=0.6):
     def loss(y_true, y_pred):
-        global _mse_ok
-        if not(_mse_ok):
-            print(y_true.shape)
-        _mse_ok = True
-        grad_kernel = K.variable(value=[[0, -1, 0],[-1, 0, 1],[0, 1, 0]])
-        K.reshape(grad_kernel, [3,3,1])
-        grad_true = K.conv2d(y_true, grad_kernel, padding='same', strides=(1,1))
-        grad_pred = K.conv2d(y_pred, grad_kernel, padding='same', strides=(1,1))
+        grad_kernel = np.array([[0, -1, 0],[-1, 0, 1],[0, 1, 0]])
+        grad_kernel = np.stack((grad_kernel,grad_kernel,grad_kernel), axis=2)
+        grad_kernel = K.variable(value=grad_kernel)
+        grad_true = K.conv2d(y_true, grad_kernel, padding='same', strides=[1], dilation_rate=[1])
+        grad_pred = K.conv2d(y_pred, grad_kernel, padding='same', strides=[1], dilation_rate=[1])
         return alpha*keras.losses.mean_squared_error(y_true,y_pred) + (1-alpha)*keras.losses.mean_squared_error(grad_true,grad_pred)
     return loss
 
