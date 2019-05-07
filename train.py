@@ -481,7 +481,8 @@ def mse_plus_grad(alpha=0.6):
         print(dir(y_pred))
         global _mse_ok
         _mse_ok = True
-        grad_kernel = K.variable(value=[[0, -1, 0],[-1, 0, 1],[0, 1, 0]], dtype=K.floatx())
+        grad_kernel = K.variable(value=[[0, -1, 0],[-1, 0, 1],[0, 1, 0]])
+        K.reshape(grad_kernel, [3,3,1])
         grad_true = K.conv2d(y_true, grad_kernel, padding='same', strides=(1,1))
         grad_pred = K.conv2d(y_pred, grad_kernel, padding='same', strides=(1,1))
         return alpha*keras.losses.mean_squared_error(y_true,y_pred) + (1-alpha)*keras.losses.mean_squared_error(grad_true,grad_pred)
