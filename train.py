@@ -477,8 +477,8 @@ def DSSIM_MSE():
 _mse_ok = False
 def mse_plus_grad(alpha=0.6):
     def loss(y_true, y_pred):
-        print(dir(y_true))
-        print(dir(y_pred))
+        if not(_mse_ok):
+            print(y_true.shape)
         global _mse_ok
         _mse_ok = True
         grad_kernel = K.variable(value=[[0, -1, 0],[-1, 0, 1],[0, 1, 0]])
