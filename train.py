@@ -476,6 +476,8 @@ def DSSIM_MSE():
 
 def mse_plus_grad(alpha=0.6):
     def loss(y_true, y_pred):
+        print(dir(y_true))
+        print(dir(y_pred))
         grad_kernel = K.variable([[0, -1, 0],[-1, 0, 1],[0, 1, 0]], dtype=y_true.dtype)
         grad_true = K.conv2d(y_true, grad_kernel, padding='same', strides=(1,1))
         grad_pred = K.conv2d(y_pred, grad_kernel, padding='same', strides=(1,1))
