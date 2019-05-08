@@ -94,6 +94,10 @@ data_dir = 'data'
     
 if dataset == 'cifar100':
     (y_train, temp), (y_test, temp2) = cifar100.load_data()
+    del(temp)
+    del(temp2)
+    y_train = y_train[:100]
+    y_test = y_test[:10]
 
 #print("Loading images into memory...", end='', flush=True)
 #y_train = []
@@ -186,8 +190,13 @@ def add_blue_hole(x):
         return np.array([_add_blue_hole(im) for im in x])
     else:
         return _add_blue_hole(x)
+
+noise_image = np.ones((512, 512, 3))
+try:
+    noise_image = (plt.imread('../datasets/noise/101HPIMG/HPIM3024.JPG')[:,:,:3])*9
+except FileNotFoundError:
+    print('You do not have a noisy image sample')
     
-noise_image = (plt.imread('../datasets/noise/101HPIMG/HPIM3024.JPG')[:,:,:3])*9
 noise = cv2.repeat(crop(noise_image, 300, 64), 15, 15)
 def _add_high_iso_noise(x):
     if x.shape[0] > noise.shape[0] or x.shape[1] > noise.shape[1]:
@@ -213,8 +222,8 @@ def add_noise(img, multiprocessing=False, adapt = True, batch = False):
     if (x.dtype == float or x.dtype == 'float32' or x.dtype == 'float64' or np.max(x) <= 1) and adapt:
         #x *= 255
         x = (x * 255).astype(int)
-        print(x)
-        print('dividing')
+        #print(x)
+        #print('dividing')
     if 'poisson' in noises:
         x = add_poisson_noise(x)
     if 'gaussian' in noises:
@@ -451,6 +460,15 @@ elif args.arch == 'large3':
     model.add(LeakyReLU(alpha=0.01))
     model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
     model.add(Activation('relu'))
+elif args.arch == 'large4':
+    model.add(Conv2D(48, (13, 13), padding='same', input_shape=(None, None, n_colors)))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (9, 9), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(20, (5, 5), padding='same'))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
+    model.add(Activation('relu'))
 elif args.arch == 'xlarge':
     model.add(Conv2D(32, (15, 15), padding='same', input_shape=(None, None, n_colors)))
     model.add(LeakyReLU(alpha=0.01))
@@ -476,8 +494,10 @@ def DSSIM_MSE():
 
 def mse_plus_grad(alpha=0.6):
     def loss(y_true, y_pred):
+        #print(K.eval(y_true))
         grad_kernel = np.array([[0, -1, 0],[-1, 0, 1],[0, 1, 0]])
-        grad_kernel = np.stack((grad_kernel,grad_kernel,grad_kernel), axis=2)
+        grad_kernel = np.stack((grad_kernel,grad_kernel,grad_kernel), axis=-1)
+        grad_kernel = np.reshape(grad_kernel, (3, 3, 3, 1))
         grad_kernel = K.variable(value=grad_kernel)
         grad_true = K.conv2d(y_true, grad_kernel, padding='same', strides=[1], dilation_rate=[1])
         grad_pred = K.conv2d(y_pred, grad_kernel, padding='same', strides=[1], dilation_rate=[1])
