@@ -34,7 +34,7 @@ parser.add_argument('--architecture', dest='arch', default='simple', help='choos
 parser.add_argument('--history', default=0, type=int, help='display training history at the end')
 parser.add_argument('--opencl', default=1, type=int, help='use PlaidML as backend')
 parser.add_argument('--loss', default='mse', help='set loss evaluation function')
-parser.add_argument('--patience', default=8, help='how many epochs with no improvements before we stop')
+parser.add_argument('--patience', default=8, type=int, help='how many epochs with no improvements before we stop')
 
 args = parser.parse_args()
 print(args)
