@@ -34,6 +34,7 @@ parser.add_argument('--architecture', dest='arch', default='simple', help='choos
 parser.add_argument('--history', default=0, type=int, help='display training history at the end')
 parser.add_argument('--opencl', default=1, type=int, help='use PlaidML as backend')
 parser.add_argument('--loss', default='mse', help='set loss evaluation function')
+parser.add_argument('--patience', default=8, help='how many epochs with no improvements before we stop')
 
 args = parser.parse_args()
 print(args)
@@ -469,6 +470,15 @@ elif args.arch == 'large4':
     model.add(LeakyReLU(alpha=0.01))
     model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
     model.add(Activation('relu'))
+elif args.arch == 'large5':
+    model.add(Conv2D(64, (11, 11), padding='same', input_shape=(None, None, n_colors)))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (9, 9), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(20, (5, 5), padding='same'))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
+    model.add(Activation('relu'))
 elif args.arch == 'xlarge':
     model.add(Conv2D(32, (15, 15), padding='same', input_shape=(None, None, n_colors)))
     model.add(LeakyReLU(alpha=0.01))
@@ -570,7 +580,7 @@ class ValidationProgress(keras.callbacks.Callback):
 
 lossinfo = LossInfo(save_best=True)
 validationprog = ValidationProgress()
-stop_when_no_improvements = EarlyStopping(monitor='val_loss', min_delta=0, patience=8, verbose=0, mode='auto', baseline=None, restore_best_weights=True)
+stop_when_no_improvements = EarlyStopping(monitor='val_loss', min_delta=0, patience=args.patience, verbose=0, mode='auto', baseline=None, restore_best_weights=True)
 #checkpoint = ModelCheckpoint(checkpoint_name, monitor="val_loss", verbose=1, save_best_only=True, period=3)
 
 
