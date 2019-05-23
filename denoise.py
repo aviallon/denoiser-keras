@@ -43,8 +43,11 @@ model = load_model(model_path)
 
 def load_image(path):
     temp = plt.imread(path, format='rgb')
-    if temp.shape[2] > 3:
-        temp = temp[:, :, 0:3]
+    if len(temp.shape) == 3:
+        if temp.shape[2] > 3:
+            temp = temp[:, :, 0:3]
+    else:
+        temp = np.stack((temp, temp, temp), axis=-1)
     return temp/255
 
 def predict(image):

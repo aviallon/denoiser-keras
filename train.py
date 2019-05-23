@@ -22,12 +22,13 @@ except NameError:
     data_already_peprocessed = False
 save_dir = os.path.join(os.getcwd(), 'saved_models')
 model_name = 'keras_denoiser_model-'+str(int(time.time()))[-6:] # Add a timestamp at the end to avoid overwriting
-noises = ['poisson', 'gaussian', 'salt', 'pepper', 'wavelet', 'inpainting', 'highiso']
+noises = ['poisson', 'gaussian', 'salt', 'pepper', 'wavelet', 'inpainting', 'greyscale', 'highiso', 'simple_blur', 'gaussian_blur', 'none']
 
 parser = argparse.ArgumentParser(description='Train denoising models.')
 parser.add_argument('--noise', dest='noises', choices=noises, nargs='+', default=['poisson', 'gaussian'], required=False, help='specify on which noises we should train')
 parser.add_argument('--name', help='output network name')
-parser.add_argument('--dataset', default='cifar100', choices=['cifar100', 'data'], help='dataset on which to train')
+parser.add_argument('--dataset', default='cifar100', help='dataset on which to train')
+parser.add_argument('--val_data', dest='valdir', default='', help='specify specific data dir for validation. Defaults to {$dataset}_val')
 parser.add_argument('--resume', default=0, type=int, help='resume last training if it exists')
 parser.add_argument('--batch_size', dest='bsize', default=40, type=int, help='set batch size')
 parser.add_argument('--architecture', dest='arch', default='simple', help='choose network architecture')
@@ -57,6 +58,8 @@ if args.opencl:
 import keras
 import cv2
 import numpy as np
+from scipy.signal import convolve2d
+import scipy.ndimage.filters as filters
 import matplotlib.pyplot as plt
 
 import keras.backend as K
@@ -65,7 +68,7 @@ import keras_contrib
 from keras import applications
 from keras.datasets import cifar100
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling2D, Conv2DTranspose, Reshape, LeakyReLU
+from keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling2D, Conv2DTranspose, Reshape, LeakyReLU, UpSampling2D, BatchNormalization
 from keras.callbacks import ModelCheckpoint, EarlyStopping, LambdaCallback
 import keras.preprocessing.image as preprocess
 
@@ -73,6 +76,16 @@ from multiprocessing import Pool
 
 np.random.seed()
 #model = applications.VGG16(include_top=False, weights='imagenet')
+
+def conv2d(x, kernel):
+    x_r = x[:,:,0].reshape(x.shape[:2])
+    x_g = x[:,:,1].reshape(x.shape[:2])
+    x_b = x[:,:,2].reshape(x.shape[:2])
+    
+    return np.stack((convolve2d(x_r, kernel, boundary='symm', mode='same'),
+                    convolve2d(x_g, kernel, mode='same', boundary='symm'),
+                    convolve2d(x_b, kernel, mode='same', boundary='symm')),
+                    axis=2)
 
 def load_image(path, divide=255.0):
     #print(img.shape)
@@ -99,6 +112,14 @@ if dataset == 'cifar100':
     del(temp2)
     y_train = y_train[:100]
     y_test = y_test[:10]
+    
+else:
+    if os.path.isdir(dataset):
+        data_dir = dataset
+        val_dir = dataset+'_val'
+    
+    if os.path.isdir(args.valdir):
+        val_dir = args.valdir
 
 #print("Loading images into memory...", end='', flush=True)
 #y_train = []
@@ -211,6 +232,40 @@ def add_high_iso_noise(x):
     else:
         return _add_high_iso_noise(x)
     
+def _add_blur(x):
+    kernel_blur = np.ones((3,3))/(3**2)
+    return conv2d(x, kernel_blur)
+    
+def add_blur(x):
+    if len(x.shape) > 3:
+        return np.array([_add_blur(im) for im in x])
+    else:
+        return _add_blur(x)
+    
+def _add_gaussian_blur(x):
+    return filters.gaussian_filter(x, 1.2)
+    
+def add_gaussian_blur(x):
+    if len(x.shape) > 3:
+        return np.array([_add_gaussian_blur(im) for im in x])
+    else:
+        return _add_gaussian_blur(x)
+  
+def _blackAndWhite(x):
+    x_r = x[:,:,0].reshape(x.shape[:2])
+    x_g = x[:,:,1].reshape(x.shape[:2])
+    x_b = x[:,:,2].reshape(x.shape[:2])
+    
+    grey = 0.2126*x_r + 0.7152*x_g + 0.0722*x_b
+    
+    return np.stack((grey, grey, grey), axis=-1)
+    
+def blackAndWhite(x):
+    if len(x.shape) > 3:
+        return np.array([_blackAndWhite(im) for im in x])
+    else:
+        return _blackAndWhite(x)
+
 def add_noise(img, multiprocessing=False, adapt = True, batch = False):
     x = img.copy()
     #print(x.shape, x.dtype)
@@ -240,6 +295,13 @@ def add_noise(img, multiprocessing=False, adapt = True, batch = False):
         x = add_pepper_noise(x, multiprocessing)
     if 'inpainting' in noises:
         x = add_blue_hole(x)
+    if 'simple_blur' in noises:
+        x = add_blur(x)
+    if 'gaussian_blur' in noises:
+        x = add_gaussian_blur(x)
+    if 'greyscale' in noises:
+        x = blackAndWhite(x)
+        
     return np.clip(x.astype('float32')/255, 0, 1)
         
 def compare_im(image, lignes=1, n=0):
@@ -413,19 +475,19 @@ if dataset == 'cifar100':
     validation_generator = (x_test, y_test)
 
 else:
-    train_generator = generate_data('./data',
+    train_generator = generate_data(data_dir,
                                     noises=noises,
                                     batch_size=batch_size,
                                     target_size=(512, 512))
     
     #datagen.fit(train_generator)
     
-    validation_generator = generate_data('./data_val_small',
+    validation_generator = generate_data(val_dir,
                                          noises=noises,
                                          batch_size=batch_size,
                                          target_size=(512, 512))
     
-    steps_epoch, val_steps = len(os.listdir('./data')) // batch_size, len(os.listdir('./data_val_small')) // batch_size
+    steps_epoch, val_steps = len(os.listdir(data_dir)) // batch_size, len(os.listdir(val_dir)) // batch_size
 
 model = Sequential()
 
@@ -472,12 +534,59 @@ elif args.arch == 'large4':
     model.add(Activation('relu'))
 elif args.arch == 'large5':
     model.add(Conv2D(64, (11, 11), padding='same', input_shape=(None, None, n_colors)))
+    #model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(Conv2D(32, (9, 9), padding='same'))
     model.add(Activation('relu'))
     model.add(Conv2D(20, (5, 5), padding='same'))
     model.add(LeakyReLU(alpha=0.01))
     model.add(Conv2DTranspose(n_colors, (7, 7), padding='same'))
+    model.add(Activation('relu'))
+elif args.arch == 'deconv':
+    model.add(Conv2DTranspose(n_colors*20, (32, 32), input_shape=(None, None, n_colors), padding='same'))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D((2,2)))
+    model.add(Conv2DTranspose(n_colors*20, (32, 32), padding='same'))
+    model.add(Activation('relu'))
+    #model.add(MaxPooling2D((2,2)))
+    model.add(Conv2DTranspose(n_colors*20, (32, 32), padding='same'))
+    model.add(Activation('relu'))
+    model.add(UpSampling2D((2,2)))
+    #model.add(MaxPooling2D((2,2)))
+    model.add(Conv2DTranspose(n_colors, (32, 32), padding='same'))
+    model.add(Activation('relu'))
+elif args.arch == 'conv_deconv':
+    model.add(Conv2D(32, (3, 3), input_shape=(None, None, n_colors), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    #model.add(MaxPooling2D((2,2)))
+    model.add(Conv2D(32, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2DTranspose(32, (5, 5), padding='same'))
+    model.add(Activation('relu'))
+    #model.add(UpSampling2D((2,2)))
+    model.add(Conv2DTranspose(n_colors, (9, 9), padding='same'))
+    model.add(Activation('relu'))
+elif args.arch == 'autoencoder':
+    model.add(Conv2D(32, (3, 3), input_shape=(None, None, n_colors), padding='same'))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D((2,2)))
+    model.add(Conv2D(32, (5, 5), padding='same'))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D((2,2)))
+    model.add(Conv2D(32, (7, 7), padding='same'))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D((2,2)))
+    # Here we are
+    model.add(UpSampling2D((2,2)))
+    model.add(Conv2DTranspose(32, (7,7), padding='same'))
+    model.add(Activation('relu'))
+    model.add(UpSampling2D((2,2)))
+    model.add(Conv2DTranspose(32, (5,5), padding='same'))
+    model.add(Activation('relu'))
+    model.add(UpSampling2D((2,2)))
+    model.add(Conv2DTranspose(n_colors, (3, 3), padding='same'))
     model.add(Activation('relu'))
 elif args.arch == 'xlarge':
     model.add(Conv2D(32, (15, 15), padding='same', input_shape=(None, None, n_colors)))

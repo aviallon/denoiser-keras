@@ -61,6 +61,7 @@ def convert(file, size, func=crop):
         print("error : ", e)
     
 def convert_dir(directory, size, func=crop):
+    n_files = len(os.listdir(directory))
     files = []
     for f in os.scandir(directory):
         files.append([f.path, f.name])
@@ -76,6 +77,8 @@ def convert_dir(directory, size, func=crop):
         del(files[0:min(n, len(files))])
         for p in jobs:
             p.join(5)
+        
+        print('==== [{}/{}] ===='.format(n_files-len(files), n_files))
             
         
 parser = argparse.ArgumentParser(description='Prepare data for learning.')
